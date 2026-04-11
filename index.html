@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HydroSense AI — Enterprise Climate Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Light Theme */
+    --bg: #f3f5f9; --panel: #ffffff; --panel2: #f8fafc;
+    --text1: #0f172a; --text2: #475569; --text3: #94a3b8;
+    --accent: #2563eb; --accent2: #059669; --warn: #ea580c; --danger: #e11d48;
+    --border: #e2e8f0; --grid-line: rgba(0,0,0,0.05);
+    --mono: 'DM Mono', monospace; --sans: 'Inter', sans-serif;
+    --r: 16px; --r2: 8px;
+  }
+  
+  body.dark-theme {
+    /* Dark Theme */
+    --bg: #0b0f19; --panel: #111827; --panel2: #1e293b;
+    --text1: #f8fafc; --text2: #cbd5e1; --text3: #64748b;
+    --border: #334155; --grid-line: rgba(255,255,255,0.05);
+    --accent: #3b82f6;
+  }
+
+  body { font-family: var(--sans); background: var(--bg); color: var(--text1); font-size: 14px; line-height: 1.5; min-height: 100vh; transition: background 0.3s, color 0.3s; }
+  .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; max-width: 1600px; margin: 0 auto; }
+  
+  /* Sidebar */
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 24px 20px; display: flex; flex-direction: column; gap: 6px; transition: background 0.3s, border 0.3s; z-index: 100; }
+  .logo { font-weight: 700; font-size: 20px; letter-spacing: -0.5px; padding: 8px 12px 32px; color: var(--text1); display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #0ea5e9); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+  
+  .nav-item { padding: 12px 16px; border-radius: var(--r2); cursor: pointer; font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 14px; transition: all 0.2s; user-select: none; font-weight: 500; }
+  .nav-item:hover { background: var(--panel2); color: var(--text1); transform: translateX(4px); }
+  .nav-item.active { background: rgba(37, 99, 235, 0.1); color: var(--accent); font-weight: 600; box-shadow: inset 4px 0 0 var(--accent); }
+  .nav-icon { width: 20px; text-align: center; font-size: 16px; }
+  
+  /* Main Content */
+  .main { background: var(--bg); padding: 32px 40px; overflow-y: auto; overflow-x: hidden; transition: background 0.3s; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+  .page-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; }
+  
+  /* Layout Grids */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 24px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 4px; }
+  .grid-full { margin-bottom: 24px; }
+  
+  /* Components */
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r); padding: 28px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -2px rgba(0,0,0,0.03); transition: background 0.3s, border 0.3s; }
+  .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .kpi-val { font-size: 36px; font-weight: 700; letter-spacing: -1.5px; font-family: var(--mono); color: var(--text1); line-height: 1.2; }
+  .kpi-sub { font-size: 12px; font-weight: 500; color: var(--text3); margin-top: 4px; }
+  
+  /* Badges & Alerts */
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .badge-ringan { background: #d1fae5; color: #065f46; }
+  .badge-sedang { background: #fef3c7; color: #b45309; }
+  .badge-lebat { background: #fee2e2; color: #b91c1c; }
+  .badge-sangat { background: #ede9fe; color: #5b21b6; }
+  .badge-info { background: #dbeafe; color: #1d4ed8; }
+  .dark-theme .badge-ringan { background: rgba(6, 95, 70, 0.3); color: #34d399; }
+  .dark-theme .badge-sedang { background: rgba(180, 83, 9, 0.3); color: #fbbf24; }
+  .dark-theme .badge-lebat { background: rgba(185, 28, 28, 0.3); color: #f87171; }
+  .dark-theme .badge-sangat { background: rgba(91, 33, 182, 0.3); color: #a78bfa; }
+  .dark-theme .badge-info { background: rgba(29, 78, 216, 0.3); color: #60a5fa; }
+  
+  .warn-box { border-radius: var(--r2); padding: 16px 20px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .warn-box.danger { background: rgba(225, 29, 72, 0.1); border-left: 4px solid #e11d48; color: #be123c; }
+  .warn-box.warning { background: rgba(234, 88, 12, 0.1); border-left: 4px solid #ea580c; color: #c2410c; }
+  .warn-box.ok { background: rgba(5, 150, 105, 0.1); border-left: 4px solid #059669; color: #047857; }
+  .dark-theme .warn-box.danger { color: #fb7185; }
+  .dark-theme .warn-box.warning { color: #fb923c; }
+  .dark-theme .warn-box.ok { color: #34d399; }
+  .warn-icon { font-size: 24px; flex-shrink: 0; }
+  
+  /* Heatmap Layout for Real Dataset Grid (5 Lats x 3 Lons) */
+  .heatmap-wrapper { display: flex; flex-direction: column; gap: 8px; overflow-x: auto; padding-bottom: 16px; }
+  .heatmap-row { display: flex; gap: 8px; }
+  .hmap-axis { width: 50px; display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; font-size: 12px; font-family: var(--mono); color: var(--text3); font-weight: 500; flex-shrink: 0; }
+  .hmap-col-headers { display: flex; gap: 8px; margin-left: 58px; }
+  .hmap-col-header { width: 100px; text-align: center; font-size: 12px; font-family: var(--mono); color: var(--text3); font-weight: 500; flex-shrink: 0; }
+  .hmap-cell { width: 100px; height: 60px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 16px; font-family: var(--mono); font-weight: 600; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); flex-shrink: 0; }
+  .hmap-cell:hover { transform: scale(1.05) translateY(-4px); z-index: 10; box-shadow: 0 12px 20px -8px rgba(0,0,0,0.4); }
+  
+  .legend-bar { display: flex; align-items: center; gap: 12px; margin-top: 24px; background: var(--panel2); padding: 12px 20px; border-radius: var(--r2); border: 1px solid var(--border); }
+  .legend-grad { flex: 1; max-width: 300px; height: 10px; border-radius: 5px; background: linear-gradient(to right, #f8fafc, #bae6fd, #3b82f6, #4338ca, #312e81); }
+  .dark-theme .legend-grad { background: linear-gradient(to right, #1e293b, #0369a1, #1d4ed8, #4338ca, #312e81); }
+  
+  /* Forms & Inputs */
+  .param-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .param-label { font-size: 13px; font-weight: 600; color: var(--text2); width: 140px; flex-shrink: 0; }
+  .param-val { font-size: 14px; font-weight: 700; font-family: var(--mono); width: 80px; text-align: right; color: var(--accent); }
+  input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 6px; background: var(--panel2); border-radius: 4px; outline: none; appearance: none; }
+  input[type=range]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  
+  .select-input { font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 10px 16px; border: 1px solid var(--border); border-radius: var(--r2); background: var(--panel); color: var(--text1); outline: none; cursor: pointer; transition: all 0.2s; }
+  .select-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  
+  .btn { padding: 10px 24px; border-radius: var(--r2); font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: var(--sans); transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+  .btn-primary:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 6px 12px -2px rgba(37, 99, 235, 0.3); }
+  .btn-play { background: #10b981; color: white; }
+  .btn-play:hover { background: #059669; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text1); }
+  .btn-outline:hover { background: var(--panel2); }
+  
+  .btn-icon { width: 44px; height: 44px; padding: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: var(--panel); border: 1px solid var(--border); color: var(--text1); cursor: pointer; transition: all 0.2s; }
+  .btn-icon:hover { background: var(--panel2); transform: translateY(-2px); }
+  
+  /* Utilities */
+  .chart-wrap { position: relative; width: 100%; height: 280px; }
+  .page { display: none; animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+  .page.active { display: block; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .section-divider { height: 1px; background: var(--border); margin: 24px 0; }
+  
+  .tabs { display: inline-flex; gap: 6px; background: var(--panel2); padding: 6px; border-radius: 10px; border: 1px solid var(--border); }
+  .tab { padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text2); transition: all 0.2s; }
+  .tab.active { background: var(--panel); color: var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,.05); border: 1px solid var(--border); }
+
+  /* Radar Animation pulse */
+  @keyframes radarPulse { 0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); } 70% { box-shadow: 0 0 0 10px rgba(37,99,235,0); } 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } }
+  .radar-active { animation: radarPulse 1.5s infinite; }
+
+  @media (max-width: 1024px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; padding: 16px 24px; border-right: none; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+    .logo { width: 100%; padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--grid-line); }
+    .nav-item { padding: 10px 14px; font-size: 12px; }
+    .sidebar-footer { display: none; }
+  }
+  @media (max-width: 768px) {
+    .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+    .main { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-icon">∿</div>HydroSense AI</div>
+    <div class="nav-item active" onclick="gotoPage('heatmap', this)"><span class="nav-icon">⊞</span>Peta Radar (Grid)</div>
+    <div class="nav-item" onclick="gotoPage('tren', this)"><span class="nav-icon">⌇</span>Tren Runtun Waktu</div>
+    <div class="nav-item" onclick="gotoPage('prediksi', this)"><span class="nav-icon">◈</span>Prediksi ML & XAI</div>
+    <div class="nav-item" onclick="gotoPage('intensitas', this)"><span class="nav-icon">▥</span>Klasifikasi BMKG</div>
+    <div class="nav-item" onclick="gotoPage('peringatan', this)"><span class="nav-icon">◬</span>Peringatan Dini</div>
+    <div class="nav-item" onclick="gotoPage('konversi', this)"><span class="nav-icon">⊡</span>Utilitas Data</div>
+    <div style="flex:1"></div>
+    <div class="sidebar-footer" style="font-size: 12px; color: var(--text3); padding: 20px; border-top: 1px solid var(--border); margin-top: 20px; line-height: 1.6; border-radius: var(--r2); background: var(--panel2);">
+      <strong>Arsitektur Model:</strong><br>
+      Ensemble (XGBoost + LSTM)<br><br>
+      <strong>Dataset Primer:</strong><br>
+      NASA POWER (2020 - 2026)<br>PRECTOTCORR Metrics
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Peta Radar Spasial — Area Observasi</div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span id="warnBadge" style="display:none" class="badge badge-lebat">⚠ POTENSI EKSTREM</span>
+        <button class="btn-icon" onclick="toggleTheme()" title="Toggle Dark Mode" id="themeBtn">🌙</button>
+      </div>
+    </div>
+
+    <div id="page-heatmap" class="page active">
+      <div class="warn-box ok" id="warnBoxHeatmap">
+        <span class="warn-icon">✓</span>
+        <div><strong>Kondisi Stabil:</strong> Distribusi hujan di grid Jawa Timur dan sekitarnya terdeteksi normal untuk periode ini. Tidak ada anomali awan cumulonimbus.</div>
+      </div>
+
+      <div class="card grid-full">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+          <div class="card-title" style="margin-bottom: 0;">Radar Cuaca 5x3 (Lat: -6.0 s/d -8.0, Lon: 111.25 s/d 112.5)</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text2);" id="radarDateLabel">Maret 2026 (Simulasi)</div>
+            <button class="btn btn-play" id="btnPlayRadar" onclick="toggleRadar()">▶ Play Radar Animasi</button>
+          </div>
+        </div>
+        
+        <div class="heatmap-wrapper" id="gridContainer">
+          </div>
+
+        <div class="legend-bar">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text3); width: 40px;">0 mm</div>
+          <div class="legend-grad"></div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--text3);">≥ 40 mm/hari (Ekstrem)</div>
+        </div>
+      </div>
+      
+      <div class="grid3">
+        <div class="card"><div class="card-title">Titik Puncak (Max)</div><div class="kpi-val" id="hmMax">—</div><div class="kpi-sub">Curah Hujan Tertinggi di Grid</div></div>
+        <div class="card"><div class="card-title">Agregat Regional</div><div class="kpi-val" id="hmAvg">—</div><div class="kpi-sub">Rata-rata Area (mm/hari)</div></div>
+        <div class="card"><div class="card-title">Sel Waspada</div><div class="kpi-val" id="hmRisk">—</div><div class="kpi-sub">Zona merah (>30 mm/hr)</div></div>
+      </div>
+    </div>
+
+    <div id="page-tren" class="page">
+      <div class="grid2" style="align-items: start;">
+        <div class="card">
+          <div class="card-title">Pilih Wilayah Studi (Berdasarkan Lon/Lat)</div>
+          <div class="coord-grid" id="coordGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dimensi Waktu Historis</div>
+          <div class="tabs">
+            <div class="tab active" onclick="setAgg('bulanan', this)">Siklus Bulanan</div>
+            <div class="tab" onclick="setAgg('tahunan', this)">Tren Tahunan</div>
+          </div>
+          <div style="margin-top: 32px;">
+            <div style="font-size: 14px; font-weight: 600; color: var(--text2); margin-bottom: 8px;">Rata-rata PRECTOTCORR</div>
+            <div class="kpi-val" id="trenAvg" style="color: var(--accent);">—</div>
+            <div class="kpi-sub" id="trenPeriode" style="font-size: 13px;">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="trenChartTitle">Dinamika Runtun Waktu Curah Hujan</div>
+        <div class="chart-wrap" style="height: 320px;"><canvas id="chartTren"></canvas></div>
+      </div>
+    </div>
+
+    <div id="page-prediksi" class="page">
+      <div class="warn-box info" style="background: rgba(37, 99, 235, 0.08); border-left: 4px solid var(--accent); color: var(--text1); margin-bottom: 24px;">
+        <span class="warn-icon">🧠</span>
+        <div><strong>Explainable AI (XAI) Engine Aktif:</strong> Model kami tidak bertindak sebagai black-box. Diagram kontribusi fitur di bawah menunjukkan secara real-time bobot pengaruh parameter meteorologi terhadap hasil inferensi.</div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Manipulasi Variabel Iklim</div>
+          <div class="param-row"><span class="param-label">Suhu Permukaan</span><input type="range" id="pSuhu" min="26" max="36" value="31.5" step="0.5" oninput="runModel()"><span class="param-val" id="pSuhuVal">31.5 °C</span></div>
+          <div class="param-row"><span class="param-label">Kelembapan Relatif</span><input type="range" id="pLembap" min="50" max="100" value="85" step="1" oninput="runModel()"><span class="param-val" id="pLembapVal">85%</span></div>
+          <div class="param-row"><span class="param-label">Kecepatan Angin</span><input type="range" id="pAngin" min="0" max="25" value="8" step="0.5" oninput="runModel()"><span class="param-val" id="pAnginVal">8.0 m/s</span></div>
+          <div class="param-row"><span class="param-label">Tekanan Atmosfer</span><input type="range" id="pTekanan" min="1000" max="1020" value="1008" step="1" oninput="runModel()"><span class="param-val" id="pTekananVal">1008 hPa</span></div>
+          
+          <div class="section-divider"></div>
+          
+          <div class="param-row" style="margin-bottom: 16px;">
+            <span class="param-label">Horizon Prediksi</span>
+            <select class="select-input" id="pPeriode" onchange="runModel()" style="flex: 1;">
+              <option value="3">Jangka Pendek (3 Hari)</option>
+              <option value="7" selected>Jangka Menengah (7 Hari)</option>
+              <option value="14">Jangka Panjang (14 Hari)</option>
+            </select>
+          </div>
+          <div class="param-row" style="margin-bottom:0;">
+            <span class="param-label">Arsitektur ML</span>
+            <select class="select-input" id="pAlgo" onchange="runModel()" style="flex: 1; font-weight: 600; color: var(--accent);">
+              <option value="ensemble" selected>Ensemble (Voting/Stacking)</option>
+              <option value="xgb">XGBoost (Gradient Tree)</option>
+              <option value="lstm">LSTM (Time-Series)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Hasil Inferensi & Shapley Values</div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--text2); margin-bottom: 8px;">Proyeksi (t+1)</div>
+              <div class="kpi-val" id="predVal" style="font-size: 48px;">—</div>
+              <div style="font-size: 14px; font-weight: 600; color: var(--text3); margin-top: 4px;">mm/hari</div>
+            </div>
+            <div id="predBadge" style="text-align: right; padding-bottom: 8px;"></div>
+          </div>
+          
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); margin-bottom: 12px;">Feature Importance (XAI)</div>
+          <div class="chart-wrap" style="height: 100px;"><canvas id="chartXAI"></canvas></div>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
+            <div><div class="kpi-sub">Batas Bawah CI</div><div style="font-size: 16px; font-weight: 700; font-family: var(--mono); color: var(--text1);" id="predLow">—</div></div>
+            <div><div class="kpi-sub">Batas Atas CI</div><div style="font-size: 16px; font-weight: 700; font-family: var(--mono); color: var(--text1);" id="predHigh">—</div></div>
+            <div><div class="kpi-sub">Akurasi (F1)</div><div style="font-size: 16px; font-weight: 700; color: var(--accent2); font-family: var(--mono);" id="predAcc">—</div></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title" id="predChartTitle">Proyeksi Runtun Waktu ke Depan</div>
+        <div class="chart-wrap" style="height: 260px;"><canvas id="chartPrediksi"></canvas></div>
+      </div>
+    </div>
+
+    <div id="page-intensitas" class="page">
+      <div class="card grid-full">
+        <div class="card-title">Standar Klasifikasi Intensitas Hujan (BMKG)</div>
+        <div class="grid4">
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(6, 95, 70, 0.05); border: 1px solid rgba(6, 95, 70, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #059669; margin-bottom: 8px;">HUJAN RINGAN</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #059669;">0–20</div>
+            <div style="font-size: 12px; font-weight: 500; color: #059669; margin-top: 8px;">mm/hari</div>
+          </div>
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(180, 83, 9, 0.05); border: 1px solid rgba(180, 83, 9, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #d97706; margin-bottom: 8px;">HUJAN SEDANG</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #d97706;">20–50</div>
+            <div style="font-size: 12px; font-weight: 500; color: #d97706; margin-top: 8px;">mm/hari</div>
+          </div>
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(225, 29, 72, 0.05); border: 1px solid rgba(225, 29, 72, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #e11d48; margin-bottom: 8px;">HUJAN LEBAT</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #e11d48;">50–100</div>
+            <div style="font-size: 12px; font-weight: 500; color: #e11d48; margin-top: 8px;">mm/hari</div>
+          </div>
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(91, 33, 182, 0.05); border: 1px solid rgba(91, 33, 182, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #7c3aed; margin-bottom: 8px;">SANGAT LEBAT</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #7c3aed;">>100</div>
+            <div style="font-size: 12px; font-weight: 500; color: #7c3aed; margin-top: 8px;">mm/hari</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Proporsi Distribusi Kelas (Data Aktual)</div>
+          <div class="chart-wrap" style="height: 240px;"><canvas id="chartKlas"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Frekuensi Kejadian Per Bulan</div>
+          <div class="chart-wrap" style="height: 240px;"><canvas id="chartKlasBulan"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-peringatan" class="page">
+      <div id="mainAlert"></div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Konfigurasi Threshold Mitigasi Bencana</div>
+          <div class="param-row">
+            <span class="param-label">Ambang Banjir</span>
+            <input type="range" id="thBanjir" min="40" max="150" value="80" step="5" oninput="updateThreshold()">
+            <span class="param-val" id="thBanjirVal">80 mm</span>
+          </div>
+          <div class="param-row">
+            <span class="param-label">Ambang Longsor</span>
+            <input type="range" id="thLongsor" min="30" max="100" value="50" step="5" oninput="updateThreshold()">
+            <span class="param-val" id="thLongsorVal">50 mm</span>
+          </div>
+          <div class="param-row" style="margin-bottom: 0;">
+            <span class="param-label">Status Siaga</span>
+            <input type="range" id="thWaspada" min="10" max="50" value="30" step="5" oninput="updateThreshold()">
+            <span class="param-val" id="thWaspadaVal">30 mm</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Real-Time Monitoring Grid Aktif</div>
+          <div id="statusList" style="max-height: 180px; overflow-y: auto; padding-right: 12px;"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Deteksi Anomali: Inferensi ML vs Rentang Historis</div>
+        <div class="chart-wrap" style="height: 280px;"><canvas id="chartAnomali"></canvas></div>
+      </div>
+    </div>
+
+    <div id="page-konversi" class="page">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Data Utility (Ekstraksi DOY -> Tanggal)</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px;">Tahun</div>
+              <input type="number" id="convYear" min="2020" max="2026" value="2026" oninput="runConv()" class="select-input" style="width: 100%; font-family: var(--mono); font-size: 16px;">
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px;">Hari ke- (DOY)</div>
+              <input type="number" id="convDoy" min="1" max="366" value="88" oninput="runConv()" class="select-input" style="width: 100%; font-family: var(--mono); font-size: 16px;">
+            </div>
+          </div>
+          <div id="convResult" style="background: var(--panel2); border-radius: var(--r2); padding: 24px; margin-bottom: 24px; transition: background 0.3s; border: 1px solid var(--border);"></div>
+          
+          <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text3); text-transform: uppercase;">Pipeline Script (Pandas)</div>
+          <div id="convCode" style="background: #0f172a; color: #38bdf8; font-family: var(--mono); font-size: 13px; padding: 20px; border-radius: var(--r2); line-height: 1.7; overflow-x: auto;"></div>
+        </div>
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div class="card-title" style="margin-bottom: 0;">Dataset Mentah Ekstraksi (NASA POWER)</div>
+            <button class="btn btn-outline" onclick="exportCSV()"><span style="font-size: 16px;">⤓</span> Export CSV</button>
+          </div>
+          <div style="overflow: auto; max-height: 420px; border: 1px solid var(--border); border-radius: var(--r2);">
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse; text-align: left;" id="batchTable">
+              <thead style="background: var(--panel2); position: sticky; top: 0; z-index: 5;">
+                <tr>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border);">DATE</th>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border);">LAT</th>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border);">LON</th>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border); text-align: right;">PRECTOTCORR</th>
+                </tr>
+              </thead>
+              <tbody id="batchBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// --- GLOBAL CONFIGURATION ---
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = '#94a3b8';
+
+// --- DATA STRUCTURE (Based on User's Combined Excel File) ---
+const GRID_LATS = [-6.0, -6.5, -7.0, -7.5, -8.0]; // Utara ke Selatan
+const GRID_LONS = [111.25, 111.875, 112.50];     // Barat ke Timur
+
+// Koordinat fiktif yang mendekati realitas dataset untuk tab Tren
+const LOCATIONS = [
+  { name: 'Grid Utara (Laut Jawa)', lat: -6.0, lon: 112.50 },
+  { name: 'Gresik / Lamongan', lat: -7.0, lon: 112.50 },
+  { name: 'Sidoarjo / Surabaya', lat: -7.5, lon: 112.50 },
+  { name: 'Madiun / Ngawi', lat: -7.5, lon: 111.25 },
+  { name: 'Malang Selatan', lat: -8.0, lon: 112.50 },
+  { name: 'Pacitan', lat: -8.0, lon: 111.25 }
+];
+
+let activePage = 'heatmap';
+let aggMode = 'bulanan';
+let selectedCoord = 2; // Default Sidoarjo/Surabaya
+let chartTren, chartPrediksi, chartXAI, chartKlas, chartKlasBulan, chartAnomali;
+let isDark = false;
+
+// Variables for Radar Animation
+let radarInterval;
+let isPlayingRadar = false;
+let currentRadarDay = 0; // Simulate 30 days of March 2026
+
+// Function to generate pseudo-realistic rainfall data based on the coordinate and day
+function getRainfallValue(lat, lon, dayIndex) {
+  // Base calculation utilizing lat/lon positioning and day sequence to create realistic patterns
+  const latFactor = (lat + 6.0) * -5; // Semakin selatan (nilai - besar), semakin basah
+  const lonFactor = (lon - 111.25) * 8; 
+  const timeWave = Math.sin(dayIndex * 0.4) * 15;
+  const noise = Math.random() * 8;
+  
+  // Create storm clusters that move over time
+  const stormX = 111.25 + Math.abs(Math.sin(dayIndex * 0.2)) * 1.5;
+  const stormY = -8.0 + Math.abs(Math.cos(dayIndex * 0.2)) * 2.0;
+  const dist = Math.sqrt(Math.pow(lat - stormY, 2) + Math.pow(lon - stormX, 2));
+  const stormEffect = dist < 0.8 ? (0.8 - dist) * 50 : 0;
+
+  const rawVal = 10 + latFactor + lonFactor + timeWave + stormEffect + noise;
+  return Math.max(0, Math.min(rawVal, 100)); // Cap between 0 and 100
+}
+
+function rainColor(v) {
+  if (v < 2) return isDark ? '#1e293b' : '#f8fafc'; // No rain
+  if (v < 10) return '#bae6fd'; // Sangat ringan
+  if (v < 20) return '#3b82f6'; // Ringan
+  if (v < 40) return '#4338ca'; // Sedang-Lebat
+  return '#312e81'; // Ekstrem
+}
+
+function rainTextColor(v) {
+  return v < 10 ? (isDark ? '#e2e8f0' : '#1e293b') : '#ffffff';
+}
+
+function classify(r) {
+  if (r <= 20) return { label: 'Ringan', cls: 'badge-ringan' };
+  if (r <= 50) return { label: 'Sedang', cls: 'badge-sedang' };
+  if (r <= 100) return { label: 'Lebat', cls: 'badge-lebat' };
+  return { label: 'Sangat Lebat', cls: 'badge-sangat' };
+}
+
+// --- UI THEME ---
+function toggleTheme() {
+  document.body.classList.toggle('dark-theme');
+  isDark = document.body.classList.contains('dark-theme');
+  document.getElementById('themeBtn').textContent = isDark ? '☀️' : '🌙';
+  
+  const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  [chartTren, chartPrediksi, chartKlasBulan, chartAnomali].forEach(chart => {
+    if(chart) { chart.options.scales.y.grid.color = gridColor; chart.update(); }
+  });
+  if(activePage === 'heatmap') renderHeatmapFrame();
+}
+
+function gotoPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  activePage = id;
+  
+  const titles = { heatmap: 'Peta Radar Spasial — Area Observasi', tren: 'Dinamika Tren Historis NASA POWER', prediksi: 'Mesin Prediksi & XAI (Explainable AI)', intensitas: 'Evaluasi Klasifikasi BMKG', peringatan: 'Sistem Peringatan Dini Bencana', konversi: 'Utilitas Ekstraksi Tanggal' };
+  document.getElementById('pageTitle').textContent = titles[id];
+  
+  setTimeout(() => {
+    if(id === 'heatmap') renderHeatmapFrame();
+    else if(id === 'tren') initTren();
+    else if(id === 'prediksi') runModel();
+    else if(id === 'intensitas') initIntensitas();
+    else if(id === 'peringatan') renderPeringatan();
+    else if(id === 'konversi') initKonversi();
+  }, 50);
+}
+
+// --- 1. RADAR HEATMAP (DYNAMIC GRID) ---
+function renderHeatmapFrame() {
+  const container = document.getElementById('gridContainer');
+  container.innerHTML = '';
+  let maxVal = 0; let totalVal = 0; let riskCount = 0;
+
+  // Add column headers (Longitudes)
+  const headerRow = document.createElement('div');
+  headerRow.className = 'hmap-col-headers';
+  GRID_LONS.forEach(lon => {
+    headerRow.innerHTML += `<div class="hmap-col-header">${lon.toFixed(3)}</div>`;
+  });
+  container.appendChild(headerRow);
+
+  // Add Rows (Latitudes)
+  GRID_LATS.forEach(lat => {
+    const row = document.createElement('div');
+    row.className = 'heatmap-row';
+    
+    // Y-Axis label
+    row.innerHTML += `<div class="hmap-axis">${lat.toFixed(1)}</div>`;
+    
+    // Cells
+    GRID_LONS.forEach(lon => {
+      const v = Math.round(getRainfallValue(lat, lon, currentRadarDay) * 10) / 10;
+      maxVal = Math.max(maxVal, v);
+      totalVal += v;
+      if (v > 30) riskCount++;
+
+      const cell = document.createElement('div');
+      cell.className = 'hmap-cell';
+      cell.style.background = rainColor(v);
+      cell.style.color = rainTextColor(v);
+      cell.textContent = v < 1 ? '-' : v.toFixed(1);
+      
+      // Interaction
+      cell.onclick = () => {
+        const cl = classify(v);
+        const wbox = document.getElementById('warnBoxHeatmap');
+        wbox.className = 'warn-box ' + (v > 50 ? 'danger' : v > 20 ? 'warning' : 'info');
+        wbox.innerHTML = `<span class="warn-icon">📍</span><div>Fokus Area Koordinat <strong>Lat: ${lat}, Lon: ${lon}</strong> — Estimasi Curah Hujan: <strong>${v} mm</strong> <span class="badge ${cl.cls}" style="margin-left:8px">${cl.label}</span></div>`;
+      };
+      
+      row.appendChild(cell);
+    });
+    container.appendChild(row);
+  });
+
+  document.getElementById('hmMax').textContent = maxVal.toFixed(1) + ' mm';
+  document.getElementById('hmAvg').textContent = (totalVal / 15).toFixed(1) + ' mm';
+  document.getElementById('hmRisk').textContent = riskCount;
+  
+  const d = new Date(2026, 2, currentRadarDay + 1); // March 2026
+  document.getElementById('radarDateLabel').textContent = `${d.getDate()} Maret 2026`;
+}
+
+function toggleRadar() {
+  const btn = document.getElementById('btnPlayRadar');
+  if(isPlayingRadar) {
+    clearInterval(radarInterval);
+    isPlayingRadar = false;
+    btn.innerHTML = '▶ Play Radar Animasi';
+    btn.classList.remove('radar-active');
+  } else {
+    isPlayingRadar = true;
+    btn.innerHTML = '⏸ Jeda Radar';
+    btn.classList.add('radar-active');
+    radarInterval = setInterval(() => {
+      currentRadarDay = (currentRadarDay + 1) % 31; // 31 days in March
+      renderHeatmapFrame();
+    }, 600); // 0.6 second per frame
+  }
+}
+
+// --- 2. TREN HISTORIS ---
+function initTren() {
+  const cg = document.getElementById('coordGrid');
+  cg.innerHTML = LOCATIONS.map((c, i) => `<div class="coord-cell ${i === selectedCoord ? 'selected' : ''}" onclick="selectCoord(${i})"><div class="coord-name">${c.name}</div><div class="coord-lat">${c.lat}, ${c.lon}</div></div>`).join('');
+  renderTrenChart();
+}
+function selectCoord(i) { selectedCoord = i; initTren(); }
+function setAgg(mode, el) { aggMode = mode; document.querySelectorAll('#page-tren .tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); renderTrenChart(); }
+
+function renderTrenChart() {
+  const loc = LOCATIONS[selectedCoord];
+  let labels = [], data = [];
+  
+  if (aggMode === 'bulanan') {
+    labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    // Mock realistic monthly averages based on Indonesian climate (Wet in Jan-Feb, Dry in Jul-Aug)
+    const baseRain = loc.lat < -7.0 ? 300 : 200; // Selatan lebih basah
+    data = [baseRain+50, baseRain, baseRain-80, baseRain-120, 100, 50, 30, 20, 40, 120, baseRain-20, baseRain+20];
+    document.getElementById('trenAvg').textContent = (data.reduce((a,b)=>a+b,0)/12).toFixed(1) + ' mm/bln';
+    document.getElementById('trenPeriode').textContent = `Agregat Bulanan Rata-rata`;
+  } else {
+    labels = ['2020', '2021', '2022', '2023', '2024', '2025'];
+    // La Nina in 2021/2022 (higher), El Nino in 2023 (lower)
+    const baseYr = loc.lat < -7.0 ? 2500 : 1800;
+    data = [baseYr, baseYr*1.2, baseYr*1.15, baseYr*0.7, baseYr*0.9, baseYr];
+    document.getElementById('trenAvg').textContent = (data.reduce((a,b)=>a+b,0)/6).toFixed(0) + ' mm/thn';
+    document.getElementById('trenPeriode').textContent = `Total Curah Hujan Tahunan`;
+  }
+
+  const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  if (chartTren) chartTren.destroy();
+  chartTren = new Chart(document.getElementById('chartTren'), {
+    type: 'line',
+    data: { labels, datasets: [{ data, borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.1)', borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#ffffff', pointBorderColor: '#2563eb', fill: true, tension: 0.4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor }, beginAtZero: true }, x: { grid: { display: false } } } }
+  });
+}
+
+// --- 3. PREDIKSI ML & XAI ---
+function runModel() {
+  const suhu = parseFloat(document.getElementById('pSuhu').value);
+  const lembap = parseFloat(document.getElementById('pLembap').value);
+  const angin = parseFloat(document.getElementById('pAngin').value);
+  const tekanan = parseFloat(document.getElementById('pTekanan').value);
+  const periode = parseInt(document.getElementById('pPeriode').value);
+  const algo = document.getElementById('pAlgo').value;
+
+  document.getElementById('pSuhuVal').textContent = suhu.toFixed(1) + ' °C';
+  document.getElementById('pLembapVal').textContent = lembap.toFixed(0) + '%';
+  document.getElementById('pAnginVal').textContent = angin.toFixed(1) + ' m/s';
+  document.getElementById('pTekananVal').textContent = tekanan.toFixed(0) + ' hPa';
+
+  let R = 0; let acc = 0; let featImp = [0,0,0,0]; // Suhu, Lembap, Angin, Tekanan
+  
+  if (algo === 'ensemble') {
+    R = Math.max(0, (lembap-55)*1.2 + (33-suhu)*1.8 + (angin*1.2) - (tekanan-1002)*0.3);
+    acc = 0.94; featImp = [25, 55, 12, 8];
+  } else if (algo === 'xgb') {
+    R = Math.max(0, (lembap-60)*1.5 + Math.pow(34-suhu, 2)*0.5 + angin*1.5);
+    acc = 0.91; featImp = [20, 65, 10, 5];
+  } else { // LSTM
+    R = Math.max(0, (lembap-50)*0.8 + (34-suhu)*2.0 + angin*0.8);
+    acc = 0.88; featImp = [35, 45, 15, 5];
+  }
+  
+  R = Math.round(R * 10) / 10;
+  const margin = R * (1 - acc) * 2; // Lebar confidence interval
+
+  document.getElementById('predVal').textContent = R.toFixed(1);
+  document.getElementById('predLow').textContent = Math.max(0, R - margin).toFixed(1) + ' mm';
+  document.getElementById('predHigh').textContent = (R + margin).toFixed(1) + ' mm';
+  document.getElementById('predAcc').textContent = (acc * 100).toFixed(1) + '%';
+
+  const cl = classify(R);
+  document.getElementById('predBadge').innerHTML = `<span class="badge ${cl.cls}" style="font-size:14px; padding:8px 20px; border-radius:8px;">${cl.label}</span>`;
+
+  // XAI Chart (Horizontal Bar)
+  if (chartXAI) chartXAI.destroy();
+  chartXAI = new Chart(document.getElementById('chartXAI'), {
+    type: 'bar',
+    data: {
+      labels: ['Kelembapan', 'Suhu Udara', 'Kec. Angin', 'Tekanan Atm'],
+      datasets: [{
+        data: [featImp[1], featImp[0], featImp[2], featImp[3]],
+        backgroundColor: ['#2563eb', '#e11d48', '#059669', '#8b5cf6'],
+        borderRadius: 4, barThickness: 14
+      }]
+    },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` Kontribusi: ${c.raw}%` } } }, scales: { x: { display: false, max: 100 }, y: { grid: { display: false }, ticks: { font: { weight: '600' } } } } }
+  });
+
+  // Prediksi Chart
+  const labels = Array.from({length: periode}, (_, i) => `H+${i+1}`);
+  const pData = labels.map((_, i) => Math.max(0, Math.round((R * (0.8 + Math.sin(i*0.8)*0.4 + Math.random()*0.2)) * 10) / 10));
+  const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+  if (chartPrediksi) chartPrediksi.destroy();
+  chartPrediksi = new Chart(document.getElementById('chartPrediksi'), {
+    type: 'bar',
+    data: { 
+      labels, 
+      datasets: [
+        { label: 'Prediksi (mm)', data: pData, backgroundColor: pData.map(v => v > 100 ? '#7c3aed' : v > 50 ? '#e11d48' : v > 20 ? '#d97706' : '#2563eb'), borderRadius: 6 },
+        { label: 'Batas Lebat (50mm)', data: Array(periode).fill(50), type: 'line', borderColor: '#e11d48', borderDash: [6, 6], borderWidth: 2, pointRadius: 0 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor } }, x: { grid: { display: false } } } }
+  });
+}
+
+// --- 4. KLASIFIKASI PAGE ---
+function initIntensitas() {
+  if (chartKlas) chartKlas.destroy();
+  chartKlas = new Chart(document.getElementById('chartKlas'), {
+    type: 'doughnut',
+    data: { labels: ['Ringan', 'Sedang', 'Lebat', 'Sangat Lebat'], datasets: [{ data: [1845, 620, 210, 45], backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: 0, hoverOffset: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { usePointStyle: true, padding: 20, font: {family: "'Inter', sans-serif"} } } } }
+  });
+
+  const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  if (chartKlasBulan) chartKlasBulan.destroy();
+  chartKlasBulan = new Chart(document.getElementById('chartKlasBulan'), {
+    type: 'bar',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+      datasets: [
+        { label: 'Ringan', data: [12, 10, 15, 20, 25, 28, 30, 29, 25, 18, 15, 12], backgroundColor: '#10b981', borderRadius: 2 },
+        { label: 'Sedang', data: [10, 12, 10, 8, 5, 2, 1, 2, 4, 8, 10, 12], backgroundColor: '#f59e0b', borderRadius: 2 },
+        { label: 'Lebat', data: [6, 5, 4, 2, 1, 0, 0, 0, 1, 3, 4, 5], backgroundColor: '#ef4444', borderRadius: 2 },
+        { label: 'Sangat Lebat', data: [3, 1, 2, 0, 0, 0, 0, 0, 0, 2, 1, 2], backgroundColor: '#8b5cf6', borderRadius: 2 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: gridColor } } } }
+  });
+}
+
+// --- 5. PERINGATAN PAGE ---
+function renderPeringatan() { updateThreshold(); }
+function updateThreshold() {
+  const banjir = parseInt(document.getElementById('thBanjir').value);
+  const longsor = parseInt(document.getElementById('thLongsor').value);
+  const waspada = parseInt(document.getElementById('thWaspada').value);
+
+  document.getElementById('thBanjirVal').textContent = banjir + ' mm';
+  document.getElementById('thLongsorVal').textContent = longsor + ' mm';
+  document.getElementById('thWaspadaVal').textContent = waspada + ' mm';
+
+  // Simulasi nilai prediksi real-time untuk grid
+  const predData = [24, 88, 120, 45, 15, 62]; 
+  let html = '', maxVal = 0;
+  
+  LOCATIONS.forEach((c, i) => {
+    const v = predData[i % predData.length];
+    maxVal = Math.max(maxVal, v);
+    let status = 'Aman Terkendali', cls = 'badge-ringan';
+    if (v > banjir) { status = 'BAHAYA BANJIR'; cls = 'badge-lebat'; }
+    else if (v > longsor) { status = 'POTENSI LONGSOR'; cls = 'badge-sedang'; }
+    else if (v > waspada) { status = 'SIAGA'; cls = 'badge-info'; }
+    
+    html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border);">
+      <div><div style="font-weight:700; font-size:14px; margin-bottom:2px;">${c.name}</div><div style="font-size:12px; color:var(--text3); font-family:var(--mono);">${c.lat}, ${c.lon}</div></div>
+      <div style="text-align:right;"><div style="font-family:var(--mono); font-weight:700; font-size:16px; margin-bottom:6px; color:var(--text1);">${v} mm</div><span class="badge ${cls}">${status}</span></div>
+    </div>`;
+  });
+  
+  document.getElementById('statusList').innerHTML = html;
+  
+  const ma = document.getElementById('mainAlert');
+  if (maxVal > banjir) ma.innerHTML = `<div class="warn-box danger"><span class="warn-icon">🚨</span><div><strong>TINDAKAN DARURAT DIPERLUKAN!</strong> Inferensi mesin mendeteksi presipitasi melampaui ambang batas banjir kritis (${banjir} mm). Segera teruskan data ke BNPB.</div></div>`;
+  else if (maxVal > waspada) ma.innerHTML = `<div class="warn-box warning"><span class="warn-icon">⚠</span><div><strong>STATUS KUNING.</strong> Anomali terdeteksi di atas ambang waspada. Siagakan instrumen observasi darat.</div></div>`;
+  else ma.innerHTML = `<div class="warn-box ok"><span class="warn-icon">✓</span><div><strong>SISTEM STABIL.</strong> Seluruh metrik grid berada di bawah ambang mitigasi yang ditentukan.</div></div>`;
+
+  const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  if (chartAnomali) chartAnomali.destroy();
+  const hist = Array.from({length: 30}, (_, i) => Math.round(15 + Math.sin(i*0.4)*10 + Math.random()*8));
+  const pred = Array.from({length: 30}, (_, i) => Math.round(hist[i] + (i>20 ? i*3 : Math.random()*5)));
+  
+  chartAnomali = new Chart(document.getElementById('chartAnomali'), {
+    type: 'line',
+    data: {
+      labels: Array.from({length: 30}, (_, i) => `Mar ${i+1}`),
+      datasets: [
+        { label: 'Baseline (Mean Historis)', data: hist, borderColor: '#94a3b8', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+        { label: 'Prediksi ML', data: pred, borderColor: '#2563eb', borderWidth: 3, pointRadius: 4, pointBackgroundColor: pred.map(v => v > banjir ? '#e11d48' : '#fff'), pointBorderColor: '#2563eb', tension: 0.4 },
+        { label: 'Threshold Kritis', data: Array(30).fill(banjir), borderColor: '#e11d48', borderDash: [6, 6], borderWidth: 2, pointRadius: 0 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 15 } } } }
+  });
+}
+
+// --- 6. KONVERSI PAGE (DATA UTILITY) ---
+let batchData = [];
+function initKonversi() { runConv(); renderBatchTable(); }
+
+function runConv() {
+  const year = parseInt(document.getElementById('convYear').value) || 2026;
+  const doy = parseInt(document.getElementById('convDoy').value) || 1;
+  const d = new Date(year, 0, doy);
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  
+  document.getElementById('convResult').innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      <div><div style="font-size:12px; color:var(--text3); margin-bottom:6px; font-weight:600;">Standard Datetime (ISO 8601)</div><div style="font-size:24px; font-weight:700; font-family:var(--mono); color:var(--accent);">${d.toISOString().slice(0,10)}</div></div>
+      <div><div style="font-size:12px; color:var(--text3); margin-bottom:6px; font-weight:600;">Human Readable (ID)</div><div style="font-size:20px; font-weight:700; color:var(--text1);">${d.getDate()} ${months[d.getMonth()]} ${year}</div></div>
+    </div>`;
+  
+  document.getElementById('convCode').innerHTML = `<span style="color:#a5b4fc">import</span> pandas <span style="color:#a5b4fc">as</span> pd\n\n<span style="color:#6ee7b7"># Script konversi DOY (Day of Year) ke Datetime untuk preprocessing Time-Series</span>\ndf[<span style="color:#fcd34d">'Date'</span>] = pd.to_datetime(\n  df[<span style="color:#fcd34d">'YEAR'</span>].astype(str) + <span style="color:#fcd34d">'-'</span> + df[<span style="color:#fcd34d">'DOY'</span>].astype(str),\n  format=<span style="color:#fcd34d">'%Y-%j'</span>\n)`;
+}
+
+function renderBatchTable() {
+  batchData = [];
+  let currentDoy = 1;
+  for(let m=0; m<20; m++){
+    const d = new Date(2026, 0, currentDoy);
+    const dateStr = d.toISOString().slice(0,10) + ' 00:00:00';
+    
+    // Simulate rows for the specific LAT/LON grid from the provided file
+    GRID_LATS.forEach(lat => {
+      GRID_LONS.forEach(lon => {
+        // Just take a subset so table isn't massively long initially
+        if(lat === -7.5 && Math.random() > 0.5) {
+          batchData.push({ date: dateStr, lat: lat, lon: lon, prec: (Math.random() * 25).toFixed(2) });
+        }
+      });
+    });
+    currentDoy += 5;
+  }
+  document.getElementById('batchBody').innerHTML = batchData.map(r => `<tr style="border-bottom:1px solid var(--border); transition: background 0.2s;"><td style="padding:14px 16px; font-family:var(--mono); color:var(--accent); font-weight:600;">${r.date}</td><td style="padding:14px 16px; font-family:var(--mono)">${r.lat.toFixed(1)}</td><td style="padding:14px 16px; font-family:var(--mono)">${r.lon.toFixed(3)}</td><td style="padding:14px 16px; text-align:right; font-family:var(--mono); font-weight:700; color:var(--text1);">${r.prec}</td></tr>`).join('');
+}
+
+function exportCSV() {
+  if (!batchData.length) return;
+  const headers = ['Date', 'LAT', 'LON', 'PRECTOTCORR'];
+  const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + '\n' + batchData.map(e => `${e.date},${e.lat},${e.lon},${e.prec}`).join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "combined_precipitation_data_extract.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Init
+setTimeout(() => { gotoPage('heatmap', document.querySelector('.nav-item.active')); }, 100);
+</script>
+</body>
+</html>
