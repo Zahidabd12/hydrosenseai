@@ -637,9 +637,10 @@ function runModel() {
   if (algo === 'ensemble') {
     R = Math.max(0, (lembap-55)*1.2 + (33-suhu)*1.8 + (angin*1.2) - (tekanan-1002)*0.3);
     acc = 0.94; featImp = [25, 55, 12, 8];
-  } else if (algo === 'xgb') {
-    R = Math.max(0, (lembap-60)*1.5 + Math.pow(34-suhu, 2)*0.5 + angin*1.5);
-    acc = 0.91; featImp = [20, 65, 10, 5];
+} else if (algo === 'xgb') {
+    R = Math.max(0, (lembap - 58) * 1.4 + (35 - suhu) * 2.1 + (angin * 1.1));
+    acc = 0.925;
+    featImp = [22, 58, 14, 6];
   } else { // LSTM
     R = Math.max(0, (lembap-50)*0.8 + (34-suhu)*2.0 + angin*0.8);
     acc = 0.88; featImp = [35, 45, 15, 5];
