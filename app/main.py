@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,11 +10,16 @@ from app.utils.date_converter import doy_to_date
 
 app = FastAPI(title="HydroSense AI")
 
+# Use absolute paths so Vercel can find the directories regardless of CWD
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "ui", "static")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "ui", "templates")
+
 # Mount static files
-app.mount("/static", StaticFiles(directory="app/ui/static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Setup templates
-templates = Jinja2Templates(directory="app/ui/templates")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
