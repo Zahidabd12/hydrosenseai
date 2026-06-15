@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HydroSense AI — Enterprise Climate Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+
+</head>
+<body>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-icon">∿</div>HydroSense AI</div>
+    <div class="nav-item active" onclick="gotoPage('heatmap', this)"><span class="nav-icon">⊞</span>Peta Radar (Grid)</div>
+    <div class="nav-item" onclick="gotoPage('tren', this)"><span class="nav-icon">⌇</span>Tren Runtun Waktu</div>
+    <div class="nav-item" onclick="gotoPage('prediksi', this)"><span class="nav-icon">◈</span>Prediksi ML & XAI</div>
+    <div class="nav-item" onclick="gotoPage('intensitas', this)"><span class="nav-icon">▥</span>Klasifikasi BMKG</div>
+    <div class="nav-item" onclick="gotoPage('peringatan', this)"><span class="nav-icon">◬</span>Peringatan Dini</div>
+    <div class="nav-item" onclick="gotoPage('konversi', this)"><span class="nav-icon">⊡</span>Utilitas Data</div>
+    <div style="flex:1"></div>
+    <div class="sidebar-footer" style="font-size: 12px; color: var(--text3); padding: 20px; border-top: 1px solid var(--border); margin-top: 20px; line-height: 1.6; border-radius: var(--r2); background: var(--panel2);">
+      <strong>Arsitektur Model:</strong><br>
+      Ensemble (XGBoost + LSTM)<br><br>
+      <strong>Dataset Primer:</strong><br>
+      NASA POWER (2020 - 2026)<br>PRECTOTCORR Metrics
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Peta Radar Spasial — Area Observasi</div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span id="warnBadge" style="display:none" class="badge badge-lebat">⚠ POTENSI EKSTREM</span>
+        <button class="btn-icon" onclick="toggleTheme()" title="Toggle Dark Mode" id="themeBtn">🌙</button>
+      </div>
+    </div>
+
+    <div id="page-heatmap" class="page active">
+      <div class="warn-box ok" id="warnBoxHeatmap">
+        <span class="warn-icon">✓</span>
+        <div><strong>Kondisi Stabil:</strong> Distribusi hujan di grid Jawa Timur dan sekitarnya terdeteksi normal untuk periode ini. Tidak ada anomali awan cumulonimbus.</div>
+      </div>
+
+      <div class="card grid-full">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+          <div class="card-title" style="margin-bottom: 0;">Radar Cuaca 5x3 (Lat: -6.0 s/d -8.0, Lon: 111.25 s/d 112.5)</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text2);" id="radarDateLabel">Maret 2026 (Simulasi)</div>
+            <button class="btn btn-play" id="btnPlayRadar" onclick="toggleRadar()">▶ Play Radar Animasi</button>
+          </div>
+        </div>
+        
+        <div class="heatmap-wrapper" id="gridContainer">
+          </div>
+
+        <div class="legend-bar">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text3); width: 40px;">0 mm</div>
+          <div class="legend-grad"></div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--text3);">≥ 40 mm/hari (Ekstrem)</div>
+        </div>
+      </div>
+      
+      <div class="grid3">
+        <div class="card"><div class="card-title">Titik Puncak (Max)</div><div class="kpi-val" id="hmMax">—</div><div class="kpi-sub">Curah Hujan Tertinggi di Grid</div></div>
+        <div class="card"><div class="card-title">Agregat Regional</div><div class="kpi-val" id="hmAvg">—</div><div class="kpi-sub">Rata-rata Area (mm/hari)</div></div>
+        <div class="card"><div class="card-title">Sel Waspada</div><div class="kpi-val" id="hmRisk">—</div><div class="kpi-sub">Zona merah (>30 mm/hr)</div></div>
+      </div>
+    </div>
+
+    <div id="page-tren" class="page">
+      <div class="grid2" style="align-items: start;">
+        <div class="card">
+          <div class="card-title">Pilih Wilayah Studi (Berdasarkan Lon/Lat)</div>
+          <div class="coord-grid" id="coordGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dimensi Waktu Historis</div>
+          <div class="tabs">
+            <div class="tab active" onclick="setAgg('bulanan', this)">Siklus Bulanan</div>
+            <div class="tab" onclick="setAgg('tahunan', this)">Tren Tahunan</div>
+          </div>
+          <div style="margin-top: 32px;">
+            <div style="font-size: 14px; font-weight: 600; color: var(--text2); margin-bottom: 8px;">Rata-rata PRECTOTCORR</div>
+            <div class="kpi-val" id="trenAvg" style="color: var(--accent);">—</div>
+            <div class="kpi-sub" id="trenPeriode" style="font-size: 13px;">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="trenChartTitle">Dinamika Runtun Waktu Curah Hujan</div>
+        <div class="chart-wrap" style="height: 320px;"><canvas id="chartTren"></canvas></div>
+      </div>
+    </div>
+
+    <div id="page-prediksi" class="page">
+      <div class="warn-box info" style="background: rgba(37, 99, 235, 0.08); border-left: 4px solid var(--accent); color: var(--text1); margin-bottom: 24px;">
+        <span class="warn-icon">🧠</span>
+        <div><strong>Explainable AI (XAI) Engine Aktif:</strong> Model kami tidak bertindak sebagai black-box. Diagram kontribusi fitur di bawah menunjukkan secara real-time bobot pengaruh parameter meteorologi terhadap hasil inferensi.</div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Manipulasi Variabel Iklim</div>
+          <div class="param-row"><span class="param-label">Suhu Permukaan</span><input type="range" id="pSuhu" min="26" max="36" value="31.5" step="0.5" oninput="runModel()"><span class="param-val" id="pSuhuVal">31.5 °C</span></div>
+          <div class="param-row"><span class="param-label">Kelembapan Relatif</span><input type="range" id="pLembap" min="50" max="100" value="85" step="1" oninput="runModel()"><span class="param-val" id="pLembapVal">85%</span></div>
+          <div class="param-row"><span class="param-label">Kecepatan Angin</span><input type="range" id="pAngin" min="0" max="25" value="8" step="0.5" oninput="runModel()"><span class="param-val" id="pAnginVal">8.0 m/s</span></div>
+          <div class="param-row"><span class="param-label">Tekanan Atmosfer</span><input type="range" id="pTekanan" min="1000" max="1020" value="1008" step="1" oninput="runModel()"><span class="param-val" id="pTekananVal">1008 hPa</span></div>
+          
+          <div class="section-divider"></div>
+          
+          <div class="param-row" style="margin-bottom: 16px;">
+            <span class="param-label">Horizon Prediksi</span>
+            <select class="select-input" id="pPeriode" onchange="runModel()" style="flex: 1;">
+              <option value="3">Jangka Pendek (3 Hari)</option>
+              <option value="7" selected>Jangka Menengah (7 Hari)</option>
+              <option value="14">Jangka Panjang (14 Hari)</option>
+            </select>
+          </div>
+          <div class="param-row" style="margin-bottom:0;">
+            <span class="param-label">Arsitektur ML</span>
+            <select class="select-input" id="pAlgo" onchange="runModel()" style="flex: 1; font-weight: 600; color: var(--accent);">
+              <option value="ensemble" selected>Ensemble (Voting/Stacking)</option>
+              <option value="xgb">XGBoost (Gradient Tree)</option>
+              <option value="lstm">LSTM (Time-Series)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Hasil Inferensi & Shapley Values</div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--text2); margin-bottom: 8px;">Proyeksi (t+1)</div>
+              <div class="kpi-val" id="predVal" style="font-size: 48px;">—</div>
+              <div style="font-size: 14px; font-weight: 600; color: var(--text3); margin-top: 4px;">mm/hari</div>
+            </div>
+            <div id="predBadge" style="text-align: right; padding-bottom: 8px;"></div>
+          </div>
+          
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); margin-bottom: 12px;">Feature Importance (XAI)</div>
+          <div class="chart-wrap" style="height: 100px;"><canvas id="chartXAI"></canvas></div>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
+            <div><div class="kpi-sub">Batas Bawah CI</div><div style="font-size: 16px; font-weight: 700; font-family: var(--mono); color: var(--text1);" id="predLow">—</div></div>
+            <div><div class="kpi-sub">Batas Atas CI</div><div style="font-size: 16px; font-weight: 700; font-family: var(--mono); color: var(--text1);" id="predHigh">—</div></div>
+            <div><div class="kpi-sub">Akurasi (F1)</div><div style="font-size: 16px; font-weight: 700; color: var(--accent2); font-family: var(--mono);" id="predAcc">—</div></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title" id="predChartTitle">Proyeksi Runtun Waktu ke Depan</div>
+        <div class="chart-wrap" style="height: 260px;"><canvas id="chartPrediksi"></canvas></div>
+      </div>
+    </div>
+
+    <div id="page-intensitas" class="page">
+      <div class="card grid-full">
+        <div class="card-title">Standar Klasifikasi Intensitas Hujan (BMKG)</div>
+        <div class="grid4">
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(6, 95, 70, 0.05); border: 1px solid rgba(6, 95, 70, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #059669; margin-bottom: 8px;">HUJAN RINGAN</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #059669;">0–20</div>
+            <div style="font-size: 12px; font-weight: 500; color: #059669; margin-top: 8px;">mm/hari</div>
+          </div>
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(180, 83, 9, 0.05); border: 1px solid rgba(180, 83, 9, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #d97706; margin-bottom: 8px;">HUJAN SEDANG</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #d97706;">20–50</div>
+            <div style="font-size: 12px; font-weight: 500; color: #d97706; margin-top: 8px;">mm/hari</div>
+          </div>
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(225, 29, 72, 0.05); border: 1px solid rgba(225, 29, 72, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #e11d48; margin-bottom: 8px;">HUJAN LEBAT</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #e11d48;">50–100</div>
+            <div style="font-size: 12px; font-weight: 500; color: #e11d48; margin-top: 8px;">mm/hari</div>
+          </div>
+          <div style="border-radius: var(--r2); padding: 20px; background: rgba(91, 33, 182, 0.05); border: 1px solid rgba(91, 33, 182, 0.2);">
+            <div style="font-size: 12px; font-weight: 700; color: #7c3aed; margin-bottom: 8px;">SANGAT LEBAT</div>
+            <div style="font-size: 28px; font-weight: 700; font-family: var(--mono); color: #7c3aed;">>100</div>
+            <div style="font-size: 12px; font-weight: 500; color: #7c3aed; margin-top: 8px;">mm/hari</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Proporsi Distribusi Kelas (Data Aktual)</div>
+          <div class="chart-wrap" style="height: 240px;"><canvas id="chartKlas"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Frekuensi Kejadian Per Bulan</div>
+          <div class="chart-wrap" style="height: 240px;"><canvas id="chartKlasBulan"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-peringatan" class="page">
+      <div id="mainAlert"></div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Konfigurasi Threshold Mitigasi Bencana</div>
+          <div class="param-row">
+            <span class="param-label">Ambang Banjir</span>
+            <input type="range" id="thBanjir" min="40" max="150" value="80" step="5" oninput="updateThreshold()">
+            <span class="param-val" id="thBanjirVal">80 mm</span>
+          </div>
+          <div class="param-row">
+            <span class="param-label">Ambang Longsor</span>
+            <input type="range" id="thLongsor" min="30" max="100" value="50" step="5" oninput="updateThreshold()">
+            <span class="param-val" id="thLongsorVal">50 mm</span>
+          </div>
+          <div class="param-row" style="margin-bottom: 0;">
+            <span class="param-label">Status Siaga</span>
+            <input type="range" id="thWaspada" min="10" max="50" value="30" step="5" oninput="updateThreshold()">
+            <span class="param-val" id="thWaspadaVal">30 mm</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Real-Time Monitoring Grid Aktif</div>
+          <div id="statusList" style="max-height: 180px; overflow-y: auto; padding-right: 12px;"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Deteksi Anomali: Inferensi ML vs Rentang Historis</div>
+        <div class="chart-wrap" style="height: 280px;"><canvas id="chartAnomali"></canvas></div>
+      </div>
+    </div>
+
+    <div id="page-konversi" class="page">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Data Utility (Ekstraksi DOY -> Tanggal)</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px;">Tahun</div>
+              <input type="number" id="convYear" min="2020" max="2026" value="2026" oninput="runConv()" class="select-input" style="width: 100%; font-family: var(--mono); font-size: 16px;">
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px;">Hari ke- (DOY)</div>
+              <input type="number" id="convDoy" min="1" max="366" value="88" oninput="runConv()" class="select-input" style="width: 100%; font-family: var(--mono); font-size: 16px;">
+            </div>
+          </div>
+          <div id="convResult" style="background: var(--panel2); border-radius: var(--r2); padding: 24px; margin-bottom: 24px; transition: background 0.3s; border: 1px solid var(--border);"></div>
+          
+          <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text3); text-transform: uppercase;">Pipeline Script (Pandas)</div>
+          <div id="convCode" style="background: #0f172a; color: #38bdf8; font-family: var(--mono); font-size: 13px; padding: 20px; border-radius: var(--r2); line-height: 1.7; overflow-x: auto;"></div>
+        </div>
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div class="card-title" style="margin-bottom: 0;">Dataset Mentah Ekstraksi (NASA POWER)</div>
+            <button class="btn btn-outline" onclick="exportCSV()"><span style="font-size: 16px;">⤓</span> Export CSV</button>
+          </div>
+          <div style="overflow: auto; max-height: 420px; border: 1px solid var(--border); border-radius: var(--r2);">
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse; text-align: left;" id="batchTable">
+              <thead style="background: var(--panel2); position: sticky; top: 0; z-index: 5;">
+                <tr>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border);">DATE</th>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border);">LAT</th>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border);">LON</th>
+                  <th style="padding: 14px 16px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border); text-align: right;">PRECTOTCORR</th>
+                </tr>
+              </thead>
+              <tbody id="batchBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+  <script src="/static/js/app.js"></script>
+
+</body>
+</html>
