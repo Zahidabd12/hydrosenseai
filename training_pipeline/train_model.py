@@ -17,7 +17,7 @@ import glob
 import os
 import m2cgen as m2c
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from xgboost import XGBRegressor
 
@@ -120,19 +120,48 @@ Xb_train, Xb_test, yb_train, yb_test = train_test_split(X_b, y_b, test_size=0.2,
 xgb_final = XGBRegressor(n_estimators=150, max_depth=6, learning_rate=0.08, random_state=42)
 xgb_final.fit(Xb_train, yb_train)
 
+yb_train_pred = xgb_final.predict(Xb_train)
 yb_pred = xgb_final.predict(Xb_test)
 
-r2_b = r2_score(yb_test, yb_pred)
-mae_b = mean_absolute_error(yb_test, yb_pred)
+r2_train = r2_score(yb_train, yb_train_pred)
+r2_test = r2_score(yb_test, yb_pred)
+mae_train = mean_absolute_error(yb_train, yb_train_pred)
+mae_test = mean_absolute_error(yb_test, yb_pred)
+rmse_train = np.sqrt(mean_squared_error(yb_train, yb_train_pred))
+rmse_test = np.sqrt(mean_squared_error(yb_test, yb_pred))
 
-print("=== Hasil Evaluasi Skenario B (Harian) ===")
-print(f"R-squared Score (R2)       : {r2_b:.3f}")
-print(f"Mean Absolute Error (MAE)  : {mae_b:.2f} mm")
+print("=== Deteksi Overfitting & Matriks Objektif ===")
+print("Metrik       | Training Set | Testing Set")
+print("-------------|--------------|-------------")
+print(f"R-Squared    | {r2_train:.3f}        | {r2_test:.3f}")
+print(f"MAE (mm)     | {mae_train:.3f}        | {mae_test:.3f}")
+print(f"RMSE (mm)    | {rmse_train:.3f}        | {rmse_test:.3f}")
 
+# Deteksi otomatis
+if (r2_train - r2_test) > 0.1:
+    print("\n⚠️ PERINGATAN: Terdeteksi Overfitting! Akurasi di data latih jauh lebih tinggi dibanding data uji.")
+else:
+    print("\n✅ AMAN: Tidak ada Overfitting signifikan. Model dapat melakukan generalisasi dengan sangat baik.")
+
+# 5-Fold Cross Validation
+print("\nMenjalankan 5-Fold Cross Validation untuk validasi tambahan...")
+cv_scores = cross_val_score(xgb_final, X_b, y_b, cv=5, scoring='r2')
+print(f"R2 Cross-Validation (5-Folds): {cv_scores}")
+print(f"Rata-rata CV R2: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
+
+# Feature Importance Plot
+plt.figure(figsize=(8, 5))
+importance = pd.Series(xgb_final.feature_importances_, index=features_b).sort_values(ascending=False)
+sns.barplot(x=importance, y=importance.index, palette='viridis')
+plt.title("Tingkat Kepentingan Fitur (Feature Importance)")
+plt.xlabel("Skor Kepentingan (0 - 1)")
+plt.show()
+
+# Plot Aktual vs Prediksi
 plt.figure(figsize=(8, 8))
 plt.scatter(yb_test, yb_pred, alpha=0.4, color='orange')
 plt.plot([0, max(yb_test)], [0, max(yb_test)], 'r--')
-plt.title(f"Aktual vs Prediksi Harian (Fitur Lengkap) | R2: {r2_b:.2f}")
+plt.title(f"Aktual vs Prediksi Harian (Fitur Lengkap) | Test R2: {r2_test:.2f}")
 plt.xlabel("Aktual (mm)")
 plt.ylabel("Prediksi (mm)")
 plt.show()
