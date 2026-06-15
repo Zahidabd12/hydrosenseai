@@ -210,7 +210,7 @@ function renderTrenChart() {
 }
 
 // --- 3. PREDIKSI ML & XAI ---
-function runModel() {
+async function runModel() {
   const suhu = parseFloat(document.getElementById('pSuhu').value);
   const lembap = parseFloat(document.getElementById('pLembap').value);
   const angin = parseFloat(document.getElementById('pAngin').value);
@@ -223,25 +223,20 @@ function runModel() {
   document.getElementById('pAnginVal').textContent = angin.toFixed(1) + ' m/s';
   document.getElementById('pTekananVal').textContent = tekanan.toFixed(0) + ' hPa';
 
-  let R = 0; let acc = 0; let featImp = [0,0,0,0]; // Suhu, Lembap, Angin, Tekanan
+  const res = await fetch('/api/predict', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ suhu, lembap, angin, tekanan, periode, algo })
+  });
+  const data = await res.json();
   
-  if (algo === 'ensemble') {
-    R = Math.max(0, (lembap-55)*1.2 + (33-suhu)*1.8 + (angin*1.2) - (tekanan-1002)*0.3);
-    acc = 0.94; featImp = [25, 55, 12, 8];
-  } else if (algo === 'xgb') {
-    R = Math.max(0, (lembap-60)*1.5 + Math.pow(34-suhu, 2)*0.5 + angin*1.5);
-    acc = 0.91; featImp = [20, 65, 10, 5];
-  } else { // LSTM
-    R = Math.max(0, (lembap-50)*0.8 + (34-suhu)*2.0 + angin*0.8);
-    acc = 0.88; featImp = [35, 45, 15, 5];
-  }
-  
-  R = Math.round(R * 10) / 10;
-  const margin = R * (1 - acc) * 2; // Lebar confidence interval
+  const R = data.prediction;
+  const acc = data.accuracy;
+  const featImp = [data.xai.suhu, data.xai.lembap, data.xai.angin, data.xai.tekanan];
 
   document.getElementById('predVal').textContent = R.toFixed(1);
-  document.getElementById('predLow').textContent = Math.max(0, R - margin).toFixed(1) + ' mm';
-  document.getElementById('predHigh').textContent = (R + margin).toFixed(1) + ' mm';
+  document.getElementById('predLow').textContent = data.ci_lower.toFixed(1) + ' mm';
+  document.getElementById('predHigh').textContent = data.ci_upper.toFixed(1) + ' mm';
   document.getElementById('predAcc').textContent = (acc * 100).toFixed(1) + '%';
 
   const cl = classify(R);
