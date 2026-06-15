@@ -40,7 +40,9 @@ async def debug_paths():
         "static_exists": os.path.isdir(STATIC_DIR),
         "templates_exists": os.path.isdir(TEMPLATES_DIR),
         "cwd": os.getcwd(),
-        "files_in_base": os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else []
+        "files_in_base": os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else [],
+        "files_in_templates": os.listdir(TEMPLATES_DIR) if os.path.exists(TEMPLATES_DIR) else [],
+        "files_in_static": os.listdir(STATIC_DIR) if os.path.exists(STATIC_DIR) else []
     }
 
 @app.get("/api/radar")
