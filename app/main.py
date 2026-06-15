@@ -68,3 +68,13 @@ async def classify(rainfall: float):
 @app.get("/api/convert_date")
 async def convert_date(year: int, doy: int):
     return doy_to_date(year, doy)
+
+@app.get("/api/health")
+async def health_check():
+    """Endpoint untuk mengecek status server HydroSense AI."""
+    return {
+        "status": "online",
+        "version": "1.0.0",
+        "model_engine": "XGBoost + m2cgen",
+        "latency": "normal"
+    }
