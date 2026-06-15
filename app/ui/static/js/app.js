@@ -98,56 +98,58 @@ function gotoPage(id, el) {
 }
 
 // --- 1. RADAR HEATMAP (DYNAMIC GRID) ---
-function renderHeatmapFrame() {
+async function renderHeatmapFrame() {
   const container = document.getElementById('gridContainer');
-  container.innerHTML = '';
-  let maxVal = 0; let totalVal = 0; let riskCount = 0;
-
-  // Add column headers (Longitudes)
-  const headerRow = document.createElement('div');
-  headerRow.className = 'hmap-col-headers';
-  GRID_LONS.forEach(lon => {
-    headerRow.innerHTML += `<div class="hmap-col-header">${lon.toFixed(3)}</div>`;
-  });
-  container.appendChild(headerRow);
-
-  // Add Rows (Latitudes)
-  GRID_LATS.forEach(lat => {
-    const row = document.createElement('div');
-    row.className = 'heatmap-row';
+  container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text3);">Memuat data radar dari server...</div>';
+  
+  try {
+    const res = await fetch('/api/radar?day=' + currentRadarDay);
+    const data = await res.json();
     
-    // Y-Axis label
-    row.innerHTML += `<div class="hmap-axis">${lat.toFixed(1)}</div>`;
+    container.innerHTML = '';
     
-    // Cells
+    // Add column headers (Longitudes)
+    const headerRow = document.createElement('div');
+    headerRow.className = 'hmap-col-headers';
     GRID_LONS.forEach(lon => {
-      const v = Math.round(getRainfallValue(lat, lon, currentRadarDay) * 10) / 10;
-      maxVal = Math.max(maxVal, v);
-      totalVal += v;
-      if (v > 30) riskCount++;
-
-      const cell = document.createElement('div');
-      cell.className = 'hmap-cell';
-      cell.style.background = rainColor(v);
-      cell.style.color = rainTextColor(v);
-      cell.textContent = v < 1 ? '-' : v.toFixed(1);
-      
-      // Interaction
-      cell.onclick = () => {
-        const cl = classify(v);
-        const wbox = document.getElementById('warnBoxHeatmap');
-        wbox.className = 'warn-box ' + (v > 50 ? 'danger' : v > 20 ? 'warning' : 'info');
-        wbox.innerHTML = `<span class="warn-icon">📍</span><div>Fokus Area Koordinat <strong>Lat: ${lat}, Lon: ${lon}</strong> — Estimasi Curah Hujan: <strong>${v} mm</strong> <span class="badge ${cl.cls}" style="margin-left:8px">${cl.label}</span></div>`;
-      };
-      
-      row.appendChild(cell);
+      headerRow.innerHTML += `<div class="hmap-col-header">${lon.toFixed(3)}</div>`;
     });
-    container.appendChild(row);
-  });
+    container.appendChild(headerRow);
 
-  document.getElementById('hmMax').textContent = maxVal.toFixed(1) + ' mm';
-  document.getElementById('hmAvg').textContent = (totalVal / 15).toFixed(1) + ' mm';
-  document.getElementById('hmRisk').textContent = riskCount;
+    data.grid.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'heatmap-row';
+      const lat = row[0].lat;
+      rowEl.innerHTML += `<div class="hmap-axis">${lat.toFixed(1)}</div>`;
+      
+      row.forEach(cell => {
+        const v = cell.value;
+        const cellEl = document.createElement('div');
+        cellEl.className = 'hmap-cell';
+        cellEl.style.background = rainColor(v);
+        cellEl.style.color = rainTextColor(v);
+        cellEl.textContent = v < 1 ? '-' : v.toFixed(1);
+        
+        cellEl.onclick = async () => {
+          const cRes = await fetch('/api/classify?rainfall=' + v);
+          const cl = await cRes.json();
+          const wbox = document.getElementById('warnBoxHeatmap');
+          wbox.className = 'warn-box ' + (v > 50 ? 'danger' : v > 20 ? 'warning' : 'info');
+          wbox.innerHTML = `<span class="warn-icon">📍</span><div>Fokus Area Koordinat <strong>Lat: ${lat}, Lon: ${cell.lon}</strong> — Estimasi Curah Hujan: <strong>${v} mm</strong> <span class="badge ${cl.cls}" style="margin-left:8px">${cl.label}</span></div>`;
+        };
+        
+        rowEl.appendChild(cellEl);
+      });
+      container.appendChild(rowEl);
+    });
+
+    document.getElementById('hmMax').textContent = data.max.toFixed(1) + ' mm';
+    document.getElementById('hmAvg').textContent = data.avg.toFixed(1) + ' mm';
+    document.getElementById('hmRisk').textContent = data.risk_count;
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<div style="color: var(--danger); padding: 20px;">Gagal terhubung ke API Radar.</div>';
+  }
   
   const d = new Date(2026, 2, currentRadarDay + 1); // March 2026
   document.getElementById('radarDateLabel').textContent = `${d.getDate()} Maret 2026`;
@@ -361,17 +363,22 @@ function updateThreshold() {
 let batchData = [];
 function initKonversi() { runConv(); renderBatchTable(); }
 
-function runConv() {
+async function runConv() {
   const year = parseInt(document.getElementById('convYear').value) || 2026;
   const doy = parseInt(document.getElementById('convDoy').value) || 1;
-  const d = new Date(year, 0, doy);
-  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   
-  document.getElementById('convResult').innerHTML = `
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-      <div><div style="font-size:12px; color:var(--text3); margin-bottom:6px; font-weight:600;">Standard Datetime (ISO 8601)</div><div style="font-size:24px; font-weight:700; font-family:var(--mono); color:var(--accent);">${d.toISOString().slice(0,10)}</div></div>
-      <div><div style="font-size:12px; color:var(--text3); margin-bottom:6px; font-weight:600;">Human Readable (ID)</div><div style="font-size:20px; font-weight:700; color:var(--text1);">${d.getDate()} ${months[d.getMonth()]} ${year}</div></div>
-    </div>`;
+  try {
+    const res = await fetch(`/api/convert_date?year=${year}&doy=${doy}`);
+    const data = await res.json();
+    
+    document.getElementById('convResult').innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div><div style="font-size:12px; color:var(--text3); margin-bottom:6px; font-weight:600;">Standard Datetime (ISO 8601)</div><div style="font-size:24px; font-weight:700; font-family:var(--mono); color:var(--accent);">${data.iso}</div></div>
+        <div><div style="font-size:12px; color:var(--text3); margin-bottom:6px; font-weight:600;">Human Readable (ID)</div><div style="font-size:20px; font-weight:700; color:var(--text1);">${data.human_readable}</div></div>
+      </div>`;
+  } catch (err) {
+    document.getElementById('convResult').innerHTML = '<span style="color:var(--danger)">Gagal memproses data dari API.</span>';
+  }
   
   document.getElementById('convCode').innerHTML = `<span style="color:#a5b4fc">import</span> pandas <span style="color:#a5b4fc">as</span> pd\n\n<span style="color:#6ee7b7"># Script konversi DOY (Day of Year) ke Datetime untuk preprocessing Time-Series</span>\ndf[<span style="color:#fcd34d">'Date'</span>] = pd.to_datetime(\n  df[<span style="color:#fcd34d">'YEAR'</span>].astype(str) + <span style="color:#fcd34d">'-'</span> + df[<span style="color:#fcd34d">'DOY'</span>].astype(str),\n  format=<span style="color:#fcd34d">'%Y-%j'</span>\n)`;
 }
