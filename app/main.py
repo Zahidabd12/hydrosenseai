@@ -36,7 +36,7 @@ else:
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     if templates:
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="index.html")
     return f"<h1>Error: Templates directory not found at {TEMPLATES_DIR}</h1>"
 
 @app.get("/api/debug_paths")
