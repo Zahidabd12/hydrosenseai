@@ -419,3 +419,14 @@ function exportCSV() {
 
 // Init
 setTimeout(() => { gotoPage('heatmap', document.querySelector('.nav-item.active')); }, 100);
+
+// Fitur Pemantauan Ekstrem (Kontribusi Auliya)
+function checkExtremeConditions(predictionValue) {
+    if (predictionValue > 100) {
+        console.warn("⚠️ PERINGATAN: Curah hujan diprediksi SANGAT LEBAT!");
+        let badge = document.getElementById("predBadge");
+        if(badge) {
+            badge.innerHTML = `<span class="badge badge-sangat" style="animation: radarPulse 1s infinite;">BAHAYA BANJIR</span>`;
+        }
+    }
+}
