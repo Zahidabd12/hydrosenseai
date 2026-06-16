@@ -138,3 +138,17 @@
     .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
     .main { padding: 24px 16px; }
   }
+
+/* Smooth Scrolling & Tambahan Efek Hover */
+html {
+  scroll-behavior: smooth;
+}
+.card:active {
+  transform: scale(0.98);
+}
+.kpi-val {
+  transition: color 0.3s ease;
+}
+.kpi-val:hover {
+  color: var(--accent);
+}
